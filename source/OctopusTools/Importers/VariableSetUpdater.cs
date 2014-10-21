@@ -61,25 +61,11 @@ namespace OctopusTools.Importers
                     {
                         case ScopeField.Environment:
                             Log.Debug("Updating the Environment IDs of the Variables scope");
-                            var oldEnvironmentIds = scopeValue.Value;
-                            var newEnvironmentIds = new List<string>();
-                            foreach (var oldEnvironmentId in oldEnvironmentIds)
-                            {
-                                newEnvironmentIds.Add(scopeValuesMapper.GetMappedEnvironment(oldEnvironmentId).Id);
-                            }
-                            scopeValue.Value.Clear();
-                            scopeValue.Value.AddRange(newEnvironmentIds);
+                            scopeValuesMapper.MapEnvironmentIds(scopeValue.Value);
                             break;
                         case ScopeField.Machine:
                             Log.Debug("Updating the Machine IDs of the Variables scope");
-                            var oldMachineIds = scopeValue.Value;
-                            var newMachineIds = new List<string>();
-                            foreach (var oldMachineId in oldMachineIds)
-                            {
-                                newMachineIds.Add(scopeValuesMapper.GetMappedMachine(oldMachineId).Id);
-                            }
-                            scopeValue.Value.Clear();
-                            scopeValue.Value.AddRange(newMachineIds);
+                            scopeValuesMapper.MapMachineIds(scopeValue.Value);
                             break;
                     }
                 }

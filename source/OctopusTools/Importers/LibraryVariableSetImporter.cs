@@ -3,11 +3,9 @@ using System.Collections.Generic;
 using log4net;
 using Octopus.Client;
 using Octopus.Client.Model;
-using Octopus.Platform.Model;
 using Octopus.Platform.Util;
 using OctopusTools.Commands;
 using OctopusTools.Extensions;
-using OctopusTools.Infrastructure;
 
 namespace OctopusTools.Importers
 {

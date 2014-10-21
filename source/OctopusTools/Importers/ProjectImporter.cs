@@ -91,15 +91,8 @@ namespace OctopusTools.Importers
                         var nugetFeedId = action.Properties["Octopus.Action.Package.NuGetFeedId"];
                         action.Properties["Octopus.Action.Package.NuGetFeedId"] = nugetFeeds[nugetFeedId].Id;
                     }
-                    var oldEnvironmentIds = action.Environments;
-                    var newEnvironmentIds = new List<string>();
                     Log.Debug("Updating IDs of Environments");
-                    foreach (var oldEnvironmentId in oldEnvironmentIds)
-                    {
-                        newEnvironmentIds.Add(scopeValuesMapper.GetMappedEnvironment(oldEnvironmentId).Id);
-                    }
-                    action.Environments.Clear();
-                    action.Environments.AddRange(newEnvironmentIds);
+                    scopeValuesMapper.MapEnvironmentIds(action.Environments);
                 }
             }
             existingDeploymentProcess.Steps.Clear();

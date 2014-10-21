@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using log4net;
 using Octopus.Client;
 using Octopus.Client.Model;
 using Octopus.Platform.Model;
+using Octopus.Platform.Util;
 using OctopusTools.Infrastructure;
 
 namespace OctopusTools.Importers
@@ -156,14 +158,30 @@ namespace OctopusTools.Importers
             return scopeValues;
         }
 
-        public EnvironmentResource GetMappedEnvironment(string originalId)
+        EnvironmentResource GetMappedEnvironment(string originalId)
         {
             return environments[originalId];
         }
 
-        public MachineResource GetMappedMachine(string originalId)
+        MachineResource GetMappedMachine(string originalId)
         {
             return machines[originalId];
+        }
+
+        public void MapEnvironmentIds(ReferenceCollection environmentIds)
+        {
+            var oldEnvironmentIds = environmentIds.Clone();
+            var newEnvironmentIds = oldEnvironmentIds.Select(oldId => GetMappedEnvironment(oldId).Id);
+            environmentIds.Clear();
+            environmentIds.AddRange(newEnvironmentIds);
+        }
+
+        public void MapMachineIds(ReferenceCollection machineIds)
+        {
+            var oldMachineIds = machineIds.Clone();
+            var newMachineIds = oldMachineIds.Select(oldId => GetMappedMachine(oldId).Id);
+            machineIds.Clear();
+            machineIds.AddRange(newMachineIds);
         }
     }
 }
