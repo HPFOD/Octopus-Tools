@@ -27,80 +27,33 @@ namespace OctopusTools.Importers
             var libraryVariableSet = importedObject.LibraryVariableSet;
             var variableSet = importedObject.VariableSet;
 
-            var scopeValuesUsed = GetScopeValuesUsed(variableSet.Variables, variableSet.ScopeValues);
+            var scopeValuesMapper = new ScopeValuesMapper(Repository, Log);
+            scopeValuesMapper.GetVariableScopeValuesUsed(variableSet);
 
-            // Check Environments
-            var environments = CheckEnvironmentsExist(scopeValuesUsed[ScopeField.Environment]);
-
-            // Check Machines
-            var machines = CheckMachinesExist(scopeValuesUsed[ScopeField.Machine]);
+            // Check that all used Environments and Machines exist
+            scopeValuesMapper.CheckScopeValuesExist();
 
             Log.DebugFormat("Beginning import of library variable set '{0}'", libraryVariableSet.Name);
 
             var importedLibVariableSet = ImportLibraryVariableSet(libraryVariableSet);
 
-            ImportVariableSets(variableSet, importedLibVariableSet, environments, machines, scopeValuesUsed);
+            ImportVariableSets(variableSet, importedLibVariableSet, scopeValuesMapper);
 
             Log.DebugFormat("Successfully imported library variable set '{0}'", libraryVariableSet.Name);
         }
 
-        Dictionary<ScopeField, List<ReferenceDataItem>> GetScopeValuesUsed(IList<VariableResource> variables, VariableScopeValues variableScopeValues)
-        {
-            var usedScopeValues = new Dictionary<ScopeField, List<ReferenceDataItem>>
-            {
-                {ScopeField.Environment, new List<ReferenceDataItem>()},
-                {ScopeField.Machine, new List<ReferenceDataItem>()}
-            };
-
-            foreach (var variable in variables)
-            {
-                foreach (var variableScope in variable.Scope)
-                {
-                    switch (variableScope.Key)
-                    {
-                        case ScopeField.Environment:
-                            var usedEnvironments = variableScope.Value;
-                            foreach (var usedEnvironment in usedEnvironments)
-                            {
-                                var environment = variableScopeValues.Environments.Find(e => e.Id == usedEnvironment);
-                                if (environment != null)
-                                {
-                                    usedScopeValues[ScopeField.Environment].Add(environment);
-                                }
-                            }
-                            break;
-                        case ScopeField.Machine:
-                            var usedMachines = variableScope.Value;
-                            foreach (var usedMachine in usedMachines)
-                            {
-                                var machine = variableScopeValues.Machines.Find(m => m.Id == usedMachine);
-                                if (machine != null)
-                                {
-                                    usedScopeValues[ScopeField.Machine].Add(machine);
-                                }
-                            }
-                            break;
-                    }
-                }
-            }
-
-            return usedScopeValues;
-        }
-
         void ImportVariableSets(VariableSetResource variableSet,
             LibraryVariableSetResource importedLibraryVariableSet,
-            Dictionary<string, EnvironmentResource> environments,
-            Dictionary<string, MachineResource> machines,
-            Dictionary<ScopeField, List<ReferenceDataItem>> scopeValuesUsed)
+            ScopeValuesMapper scopeValuesMapper)
         {
             Log.Debug("Importing the Library Variable Set Variables");
             var existingVariableSet = Repository.VariableSets.Get(importedLibraryVariableSet.VariableSetId);
 
-            var variables = UpdateVariables(variableSet, environments, machines);
+            var variables = UpdateVariables(variableSet, scopeValuesMapper);
             existingVariableSet.Variables.Clear();
             existingVariableSet.Variables.AddRange(variables);
 
-            var scopeValues = UpdateScopeValues(environments, machines, scopeValuesUsed);
+            var scopeValues = scopeValuesMapper.UpdateScopeValues();
             existingVariableSet.ScopeValues.Actions.Clear();
             existingVariableSet.ScopeValues.Actions.AddRange(scopeValues.Actions);
             existingVariableSet.ScopeValues.Environments.Clear();
@@ -114,27 +67,7 @@ namespace OctopusTools.Importers
             Repository.VariableSets.Modify(existingVariableSet);
         }
 
-        VariableScopeValues UpdateScopeValues(Dictionary<string, EnvironmentResource> environments, Dictionary<string, MachineResource> machines, Dictionary<ScopeField, List<ReferenceDataItem>> scopeValuesUsed)
-        {
-            var scopeValues = new VariableScopeValues();
-            Log.Debug("Updating the Environments of the Variable Sets Scope Values");
-            scopeValues.Environments = new List<ReferenceDataItem>();
-            foreach (var environment in scopeValuesUsed[ScopeField.Environment])
-            {
-                var newEnvironment = environments[environment.Id];
-                scopeValues.Environments.Add(new ReferenceDataItem(newEnvironment.Id, newEnvironment.Name));
-            }
-            Log.Debug("Updating the Machines of the Variable Sets Scope Values");
-            scopeValues.Machines = new List<ReferenceDataItem>();
-            foreach (var machine in scopeValuesUsed[ScopeField.Machine])
-            {
-                var newMachine = machines[machine.Id];
-                scopeValues.Machines.Add(new ReferenceDataItem(newMachine.Id, newMachine.Name));
-            }
-            return scopeValues;
-        }
-
-        IList<VariableResource> UpdateVariables(VariableSetResource variableSet, Dictionary<string, EnvironmentResource> environments, Dictionary<string, MachineResource> machines)
+        IList<VariableResource> UpdateVariables(VariableSetResource variableSet, ScopeValuesMapper scopeValuesMapper)
         {
             var variables = variableSet.Variables;
 
@@ -155,7 +88,7 @@ namespace OctopusTools.Importers
                             var newEnvironmentIds = new List<string>();
                             foreach (var oldEnvironmentId in oldEnvironmentIds)
                             {
-                                newEnvironmentIds.Add(environments[oldEnvironmentId].Id);
+                                newEnvironmentIds.Add(scopeValuesMapper.GetMappedEnvironment(oldEnvironmentId).Id);
                             }
                             scopeValue.Value.Clear();
                             scopeValue.Value.AddRange(newEnvironmentIds);
@@ -166,7 +99,7 @@ namespace OctopusTools.Importers
                             var newMachineIds = new List<string>();
                             foreach (var oldMachineId in oldMachineIds)
                             {
-                                newMachineIds.Add(machines[oldMachineId].Id);
+                                newMachineIds.Add(scopeValuesMapper.GetMappedMachine(oldMachineId).Id);
                             }
                             scopeValue.Value.Clear();
                             scopeValue.Value.AddRange(newMachineIds);
@@ -192,40 +125,6 @@ namespace OctopusTools.Importers
             Log.Debug("Library variable set does not exist, a new library variable set will be created");
 
             return Repository.LibraryVariableSets.Create(libVariableSet);
-        }
-
-        Dictionary<string, MachineResource> CheckMachinesExist(List<ReferenceDataItem> machineList)
-        {
-            Log.Debug("Checking that all machines exist");
-            var machines = new Dictionary<string, MachineResource>();
-            foreach (var m in machineList)
-            {
-                var machine = Repository.Machines.FindByName(m.Name);
-                if (machine == null)
-                {
-                    throw new CommandException("Machine " + m.Name + " does not exist");
-                }
-                if (!machines.ContainsKey(m.Id))
-                    machines.Add(m.Id, machine);
-            }
-            return machines;
-        }
-
-        Dictionary<string, EnvironmentResource> CheckEnvironmentsExist(List<ReferenceDataItem> environmentList)
-        {
-            Log.Debug("Checking that all environments exist");
-            var usedEnvironments = new Dictionary<string, EnvironmentResource>();
-            foreach (var env in environmentList)
-            {
-                var environment = Repository.Environments.FindByName(env.Name);
-                if (environment == null)
-                {
-                    throw new CommandException("Environment " + env.Name + " does not exist");
-                }
-                if (!usedEnvironments.ContainsKey(env.Id))
-                    usedEnvironments.Add(env.Id, environment);
-            }
-            return usedEnvironments;
         }
     }
 }
