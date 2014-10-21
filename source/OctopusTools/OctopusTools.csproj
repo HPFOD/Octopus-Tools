@@ -128,6 +128,7 @@
     <Compile Include="Extensions\LibraryVariableSetRepositoryExtensions.cs" />
     <Compile Include="Importers\LibraryVariableSetImporter.cs" />
     <Compile Include="Importers\ScopeValuesMapper.cs" />
+    <Compile Include="Importers\VariableSetUpdater.cs" />
     <Compile Include="Util\LineSplitter.cs" />
     <Compile Include="Commands\PackCommand.cs" />
     <Compile Include="Commands\ExportCommand.cs" />

@@ -49,65 +49,10 @@ namespace OctopusTools.Importers
             Log.Debug("Importing the Library Variable Set Variables");
             var existingVariableSet = Repository.VariableSets.Get(importedLibraryVariableSet.VariableSetId);
 
-            var variables = UpdateVariables(variableSet, scopeValuesMapper);
-            existingVariableSet.Variables.Clear();
-            existingVariableSet.Variables.AddRange(variables);
-
-            var scopeValues = scopeValuesMapper.UpdateScopeValues();
-            existingVariableSet.ScopeValues.Actions.Clear();
-            existingVariableSet.ScopeValues.Actions.AddRange(scopeValues.Actions);
-            existingVariableSet.ScopeValues.Environments.Clear();
-            existingVariableSet.ScopeValues.Environments.AddRange(scopeValues.Environments);
-            existingVariableSet.ScopeValues.Machines.Clear();
-            existingVariableSet.ScopeValues.Machines.AddRange(scopeValues.Machines);
-            existingVariableSet.ScopeValues.Roles.Clear();
-            existingVariableSet.ScopeValues.Roles.AddRange(scopeValues.Roles);
-            existingVariableSet.ScopeValues.Machines.AddRange(scopeValues.Machines);
+            var variableUpdater = new VariableSetUpdater(Log);
+            variableUpdater.UpdateVariableSet(existingVariableSet, variableSet, scopeValuesMapper);
 
             Repository.VariableSets.Modify(existingVariableSet);
-        }
-
-        IList<VariableResource> UpdateVariables(VariableSetResource variableSet, ScopeValuesMapper scopeValuesMapper)
-        {
-            var variables = variableSet.Variables;
-
-            foreach (var variable in variables)
-            {
-                if (variable.IsSensitive)
-                {
-                    Log.WarnFormat("'{0}' is a sensitive variable and it's value will be reset to a blank string, once the import has completed you will have to update it's value from the UI", variable.Name);
-                    variable.Value = String.Empty;
-                }
-                foreach (var scopeValue in variable.Scope)
-                {
-                    switch (scopeValue.Key)
-                    {
-                        case ScopeField.Environment:
-                            Log.Debug("Updating the Environment IDs of the Variables scope");
-                            var oldEnvironmentIds = scopeValue.Value;
-                            var newEnvironmentIds = new List<string>();
-                            foreach (var oldEnvironmentId in oldEnvironmentIds)
-                            {
-                                newEnvironmentIds.Add(scopeValuesMapper.GetMappedEnvironment(oldEnvironmentId).Id);
-                            }
-                            scopeValue.Value.Clear();
-                            scopeValue.Value.AddRange(newEnvironmentIds);
-                            break;
-                        case ScopeField.Machine:
-                            Log.Debug("Updating the Machine IDs of the Variables scope");
-                            var oldMachineIds = scopeValue.Value;
-                            var newMachineIds = new List<string>();
-                            foreach (var oldMachineId in oldMachineIds)
-                            {
-                                newMachineIds.Add(scopeValuesMapper.GetMappedMachine(oldMachineId).Id);
-                            }
-                            scopeValue.Value.Clear();
-                            scopeValue.Value.AddRange(newMachineIds);
-                            break;
-                    }
-                }
-            }
-            return variables;
         }
 
         LibraryVariableSetResource ImportLibraryVariableSet(LibraryVariableSetResource libVariableSet)
