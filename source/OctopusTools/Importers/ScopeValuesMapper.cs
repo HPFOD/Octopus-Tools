@@ -9,13 +9,12 @@ using OctopusTools.Infrastructure;
 namespace OctopusTools.Importers
 {
     /// <summary>
-    ///     This class handles mapping the original ids of imported scope values
-    ///     to the corresponding id values on the target Octopus server.
+    ///     Handles mapping the original ids of imported scope values to the
+    ///     corresponding id values on the target Octopus server.
     /// </summary>
     public class ScopeValuesMapper
     {
         readonly ILog log;
-        readonly IOctopusRepository repository;
         readonly Dictionary<ScopeField, List<ReferenceDataItem>> usedScopeValues =
             new Dictionary<ScopeField, List<ReferenceDataItem>>
             {
@@ -25,10 +24,9 @@ namespace OctopusTools.Importers
         readonly Dictionary<string, EnvironmentResource> environments = new Dictionary<string, EnvironmentResource>();
         readonly Dictionary<string, MachineResource> machines = new Dictionary<string, MachineResource>();
 
-        public ScopeValuesMapper(IOctopusRepository repository, ILog log)
+        public ScopeValuesMapper(ILog log)
         {
             this.log = log;
-            this.repository = repository;
         }
 
         private ILog Log
@@ -36,17 +34,11 @@ namespace OctopusTools.Importers
             get { return log; }
         }
 
-        private IOctopusRepository Repository
-        {
-            get { return repository; }
-        }
-
         public void GetVariableScopeValuesUsed(VariableSetResource variableSet)
         {
-            var variables = variableSet.Variables;
             var variableScopeValues = variableSet.ScopeValues;
 
-            foreach (var variable in variables)
+            foreach (var variable in variableSet.Variables)
             {
                 foreach (var variableScope in variable.Scope)
                 {
@@ -79,22 +71,22 @@ namespace OctopusTools.Importers
             }
         }
 
-        public void CheckScopeValuesExist()
+        public void CheckScopeValuesExist(IOctopusRepository repository)
         {
             // Check Environments
-            CheckEnvironmentsExist(usedScopeValues[ScopeField.Environment]);
+            CheckEnvironmentsExist(repository);
 
             // Check Machines
-            CheckMachinesExist(usedScopeValues[ScopeField.Machine]);
+            CheckMachinesExist(repository);
         }
 
-        private void CheckEnvironmentsExist(List<ReferenceDataItem> environmentList)
+        void CheckEnvironmentsExist(IOctopusRepository repository)
         {
             Log.Debug("Checking that all environments exist");
             environments.Clear();
-            foreach (var env in environmentList)
+            foreach (var env in usedScopeValues[ScopeField.Environment])
             {
-                var environment = Repository.Environments.FindByName(env.Name);
+                var environment = repository.Environments.FindByName(env.Name);
                 if (environment == null)
                 {
                     throw new CommandException("Environment " + env.Name + " does not exist");
@@ -104,13 +96,13 @@ namespace OctopusTools.Importers
             }
         }
 
-        private void CheckMachinesExist(List<ReferenceDataItem> machineList)
+        void CheckMachinesExist(IOctopusRepository repository)
         {
             Log.Debug("Checking that all machines exist");
             machines.Clear();
-            foreach (var m in machineList)
+            foreach (var m in usedScopeValues[ScopeField.Machine])
             {
-                var machine = Repository.Machines.FindByName(m.Name);
+                var machine = repository.Machines.FindByName(m.Name);
                 if (machine == null)
                 {
                     throw new CommandException("Machine " + m.Name + " does not exist");

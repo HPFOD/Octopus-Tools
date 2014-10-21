@@ -27,11 +27,11 @@ namespace OctopusTools.Importers
             var libraryVariableSet = importedObject.LibraryVariableSet;
             var variableSet = importedObject.VariableSet;
 
-            var scopeValuesMapper = new ScopeValuesMapper(Repository, Log);
+            var scopeValuesMapper = new ScopeValuesMapper(Log);
             scopeValuesMapper.GetVariableScopeValuesUsed(variableSet);
 
             // Check that all used Environments and Machines exist
-            scopeValuesMapper.CheckScopeValuesExist();
+            scopeValuesMapper.CheckScopeValuesExist(Repository);
 
             Log.DebugFormat("Beginning import of library variable set '{0}'", libraryVariableSet.Name);
 
