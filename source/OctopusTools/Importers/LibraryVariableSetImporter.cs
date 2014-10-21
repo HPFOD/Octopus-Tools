@@ -27,8 +27,8 @@ namespace OctopusTools.Importers
             var libraryVariableSet = importedObject.LibraryVariableSet;
             var variableSet = importedObject.VariableSet;
 
-            var scopeValuesMapper = new ScopeValuesMapper(Log);
-            scopeValuesMapper.GetVariableScopeValuesUsed(variableSet);
+            var scopeValuesMapper = new ScopeValuesMapper(variableSet.ScopeValues, Log);
+            scopeValuesMapper.GetVariableScopeValuesUsed(variableSet.Variables);
 
             // Check that all used Environments and Machines exist
             scopeValuesMapper.CheckScopeValuesExist(Repository);

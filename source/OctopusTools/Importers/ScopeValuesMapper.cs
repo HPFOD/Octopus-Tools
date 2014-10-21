@@ -15,6 +15,7 @@ namespace OctopusTools.Importers
     public class ScopeValuesMapper
     {
         readonly ILog log;
+        readonly VariableScopeValues allScopeValues;
         readonly Dictionary<ScopeField, List<ReferenceDataItem>> usedScopeValues =
             new Dictionary<ScopeField, List<ReferenceDataItem>>
             {
@@ -24,8 +25,9 @@ namespace OctopusTools.Importers
         readonly Dictionary<string, EnvironmentResource> environments = new Dictionary<string, EnvironmentResource>();
         readonly Dictionary<string, MachineResource> machines = new Dictionary<string, MachineResource>();
 
-        public ScopeValuesMapper(ILog log)
+        public ScopeValuesMapper(VariableScopeValues scopeValues, ILog log)
         {
+            allScopeValues = scopeValues;
             this.log = log;
         }
 
@@ -34,11 +36,9 @@ namespace OctopusTools.Importers
             get { return log; }
         }
 
-        public void GetVariableScopeValuesUsed(VariableSetResource variableSet)
+        public void GetVariableScopeValuesUsed(IList<VariableResource> variables)
         {
-            var variableScopeValues = variableSet.ScopeValues;
-
-            foreach (var variable in variableSet.Variables)
+            foreach (var variable in variables)
             {
                 foreach (var variableScope in variable.Scope)
                 {
@@ -48,26 +48,50 @@ namespace OctopusTools.Importers
                             var usedEnvironments = variableScope.Value;
                             foreach (var usedEnvironment in usedEnvironments)
                             {
-                                var environment = variableScopeValues.Environments.Find(e => e.Id == usedEnvironment);
-                                if (environment != null)
-                                {
-                                    usedScopeValues[ScopeField.Environment].Add(environment);
-                                }
+                                AddUsedEnvironment(usedEnvironment);
                             }
                             break;
                         case ScopeField.Machine:
                             var usedMachines = variableScope.Value;
                             foreach (var usedMachine in usedMachines)
                             {
-                                var machine = variableScopeValues.Machines.Find(m => m.Id == usedMachine);
-                                if (machine != null)
-                                {
-                                    usedScopeValues[ScopeField.Machine].Add(machine);
-                                }
+                                AddUsedMachine(usedMachine);
                             }
                             break;
                     }
                 }
+            }
+        }
+
+        public void GetActionScopeValuesUsed(IList<DeploymentStepResource> steps)
+        {
+            foreach (var step in steps)
+            {
+                foreach (var action in step.Actions)
+                {
+                    foreach (var usedEnvironment in action.Environments)
+                    {
+                        AddUsedEnvironment(usedEnvironment);
+                    }
+                }
+            }
+        }
+
+        void AddUsedEnvironment(string usedEnvironment)
+        {
+            var environment = allScopeValues.Environments.Find(e => e.Id == usedEnvironment);
+            if (environment != null && !usedScopeValues[ScopeField.Environment].Exists(env => env.Id == usedEnvironment))
+            {
+                usedScopeValues[ScopeField.Environment].Add(environment);
+            }
+        }
+
+        void AddUsedMachine(string usedMachine)
+        {
+            var machine = allScopeValues.Machines.Find(m => m.Id == usedMachine);
+            if (machine != null && !usedScopeValues[ScopeField.Machine].Exists(env => env.Id == usedMachine))
+            {
+                usedScopeValues[ScopeField.Machine].Add(machine);
             }
         }
 
