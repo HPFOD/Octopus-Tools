@@ -118,11 +118,13 @@
     <Compile Include="..\Solution Items\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="Commands\ActionTemplateExport.cs" />
     <Compile Include="Commands\CreateEnvironmentCommand.cs" />
     <Compile Include="Commands\CreateProjectCommand.cs" />
     <Compile Include="Commands\DeploymentCommandBase.cs" />
     <Compile Include="Commands\DumpDeploymentsCommand.cs" />
     <Compile Include="Commands\OptionGroup.cs" />
+    <Compile Include="Exporters\ActionTemplateExporter.cs" />
     <Compile Include="Repositories\ActionTemplateRepository.cs" />
     <Compile Include="Repositories\IActionTemplateRepository.cs" />
     <Compile Include="Util\LineSplitter.cs" />
