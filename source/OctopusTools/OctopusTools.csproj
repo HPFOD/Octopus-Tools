@@ -125,6 +125,7 @@
     <Compile Include="Commands\DumpDeploymentsCommand.cs" />
     <Compile Include="Commands\OptionGroup.cs" />
     <Compile Include="Exporters\ActionTemplateExporter.cs" />
+    <Compile Include="Importers\ActionTemplateImporter.cs" />
     <Compile Include="Repositories\ActionTemplateRepository.cs" />
     <Compile Include="Repositories\IActionTemplateRepository.cs" />
     <Compile Include="Util\LineSplitter.cs" />
