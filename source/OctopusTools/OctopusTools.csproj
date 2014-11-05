@@ -118,6 +118,7 @@
     <Compile Include="..\Solution Items\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="Commands\ActionTemplateExport.cs" />
     <Compile Include="Commands\CreateEnvironmentCommand.cs" />
     <Compile Include="Commands\CreateProjectCommand.cs" />
     <Compile Include="Commands\DeploymentCommandBase.cs" />
@@ -127,6 +128,10 @@
     <Compile Include="Exporters\LibraryVariableSetExporter.cs" />
     <Compile Include="Extensions\LibraryVariableSetRepositoryExtensions.cs" />
     <Compile Include="Importers\LibraryVariableSetImporter.cs" />
+    <Compile Include="Exporters\ActionTemplateExporter.cs" />
+    <Compile Include="Importers\ActionTemplateImporter.cs" />
+    <Compile Include="Repositories\ActionTemplateRepository.cs" />
+    <Compile Include="Repositories\IActionTemplateRepository.cs" />
     <Compile Include="Util\LineSplitter.cs" />
     <Compile Include="Commands\PackCommand.cs" />
     <Compile Include="Commands\ExportCommand.cs" />
