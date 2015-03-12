@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using log4net;
 using Octopus.Client;
 using Octopus.Client.Model;
@@ -97,6 +98,7 @@ namespace OctopusTools.Importers
             var existingVariableSet = Repository.VariableSets.Get(importedLibraryVariableSet.VariableSetId);
 
             var variables = UpdateVariables(variableSet, environments, machines);
+            MergeVariables(variables, existingVariableSet.Variables);
             existingVariableSet.Variables.Clear();
             existingVariableSet.Variables.AddRange(variables);
 
@@ -109,7 +111,6 @@ namespace OctopusTools.Importers
             existingVariableSet.ScopeValues.Machines.AddRange(scopeValues.Machines);
             existingVariableSet.ScopeValues.Roles.Clear();
             existingVariableSet.ScopeValues.Roles.AddRange(scopeValues.Roles);
-            existingVariableSet.ScopeValues.Machines.AddRange(scopeValues.Machines);
 
             Repository.VariableSets.Modify(existingVariableSet);
         }
@@ -140,11 +141,7 @@ namespace OctopusTools.Importers
 
             foreach (var variable in variables)
             {
-                if (variable.IsSensitive)
-                {
-                    Log.WarnFormat("'{0}' is a sensitive variable and it's value will be reset to a blank string, once the import has completed you will have to update it's value from the UI", variable.Name);
-                    variable.Value = String.Empty;
-                }
+                ClearVariableIfSensitive(variable);
                 foreach (var scopeValue in variable.Scope)
                 {
                     switch (scopeValue.Key)
@@ -175,6 +172,58 @@ namespace OctopusTools.Importers
                 }
             }
             return variables;
+        }
+
+        void ClearVariableIfSensitive(VariableResource variable)
+        {
+            if (variable.IsSensitive)
+            {
+                Log.WarnFormat("'{0}' is a sensitive variable and it's value will be reset to a blank string, once the import has completed you will have to update it's value from the UI", variable.Name);
+                variable.Value = String.Empty;
+            }
+        }
+
+        void MergeVariables(ICollection<VariableResource> variables, ICollection<VariableResource> existingVariables)
+        {
+            foreach (var existingVariable in existingVariables.Where(v => !VariableExists(v, variables)))
+            {
+                Log.InfoFormat("Preserving existing variable '{0}'", existingVariable.Name);
+
+                // Need to give the existing variable a new unique Id before we can reuse it.
+                existingVariable.Id = Guid.NewGuid().ToString();
+                ClearVariableIfSensitive(existingVariable);
+                variables.Add(existingVariable);
+            }
+        }
+
+        static bool VariableExists(VariableResource variable, ICollection<VariableResource> targetVariables)
+        {
+            return targetVariables.Any(v => VariablesAreEquivalent(v, variable));
+        }
+
+        static bool VariablesAreEquivalent(VariableResource v1, VariableResource v2)
+        {
+            // Two variables are equivalent if they have the same name and the same set of scope values.
+            return v1.Name.Equals(v2.Name) && ScopesAreEqual(v1.Scope, v2.Scope);
+        }
+
+        static bool ScopesAreEqual(ScopeSpecification scope1, ScopeSpecification scope2)
+        {
+            // Two scope specifications are equal if they have the same set of scope type keys and the set
+            // of scope values for each scope type is equivalent.
+            return CollectionsAreEquivalent(scope1.Keys, scope2.Keys)
+                   && scope1.Keys.All(scopeType => CollectionsAreEquivalent(scope1[scopeType], scope2[scopeType]));
+        }
+
+        static bool CollectionsAreEquivalent<T>(IEnumerable<T> first, IEnumerable<T> second)
+        {
+            // For our purposes, "equivalent" means that the collections contain the same SET of unique
+            // elements, so we can use the built-in set comparison method to compare them.  If the first
+            // collection is already a set then we can use it as is.  Otherwise, we need to create a new
+            // set from the collection elements.
+
+            var firstAsSet = first as ISet<T> ?? new HashSet<T>(first);
+            return firstAsSet.SetEquals(second);
         }
 
         LibraryVariableSetResource ImportLibraryVariableSet(LibraryVariableSetResource libVariableSet)
