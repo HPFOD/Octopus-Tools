@@ -3,7 +3,7 @@
   <metadata>
     <id>OctopusTools</id>
     <title>OctopusTools</title>
-    <version>1.0.0.0</version>
+    <version>2.6.1.5202</version>
     <authors>Octopus Deploy</authors>
     <owners>Octopus Deploy</owners>
     <summary>Create, deploy and promote releases using Octopus Deploy.</summary>
