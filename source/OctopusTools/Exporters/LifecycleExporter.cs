@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using log4net;
 using Octopus.Client;
+using Octopus.Client.Model;
 using Octopus.Platform.Util;
 using OctopusTools.Commands;
 using OctopusTools.Extensions;
@@ -27,9 +29,25 @@ namespace OctopusTools.Exporters
             if (lifecycle == null)
                 throw new CommandException("Could not find lifecycle named: " + lcName);
 
+            var environments = new List<ReferenceDataItem>();
+            foreach (var phase in lifecycle.Phases)
+            {
+                foreach (var environmentId in phase.AutomaticDeploymentTargets.Concat(phase.OptionalDeploymentTargets))
+                {
+                    var environment = Repository.Environments.Get(environmentId);
+                    if (environment == null)
+                    {
+                        throw new CommandException("Could not find Environment with Environment Id " + environmentId);
+                    }
+
+                    environments.Add(new ReferenceDataItem(environment.Id, environment.Name));
+                }
+            }
+
             var export = new LifecycleExport
             {
-                Lifecycle = lifecycle
+                Lifecycle = lifecycle,
+                Environments = environments
             };
 
             var metadata = new ExportMetadata
