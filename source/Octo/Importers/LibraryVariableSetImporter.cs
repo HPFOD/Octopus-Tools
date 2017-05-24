@@ -27,7 +27,6 @@ namespace Octopus.Cli.Importers
         {
             public LibraryVariableSetResource LibraryVariableSet { get; set; }
             public VariableSetResource VariableSet { get; set; }
-            public IDictionary<ScopeField, List<ReferenceDataItem>> ScopeValuesUsed { get; set; }
             public IDictionary<string, EnvironmentResource> Environments { get; set; }
             public IDictionary<string, MachineResource> Machines { get; set; }
         }
@@ -62,7 +61,6 @@ namespace Octopus.Cli.Importers
                 VariableSet = variableSet,
                 Environments = environmentChecks.FoundDependencies,
                 Machines = machineChecks.FoundDependencies,
-                ScopeValuesUsed = scopeValuesUsed,
                 ErrorList = errorList
             };
 
@@ -85,7 +83,7 @@ namespace Octopus.Cli.Importers
 
                 var importedLibVariableSet = await ImportLibraryVariableSet(validatedImportSettings.LibraryVariableSet).ConfigureAwait(false);
 
-                await ImportVariableSets(validatedImportSettings.VariableSet, importedLibVariableSet, validatedImportSettings.Environments, validatedImportSettings.Machines, validatedImportSettings.ScopeValuesUsed).ConfigureAwait(false);
+                await ImportVariableSets(validatedImportSettings.VariableSet, importedLibVariableSet, validatedImportSettings.Environments, validatedImportSettings.Machines).ConfigureAwait(false);
 
                 Log.Debug("Successfully imported library variable set '{LibraryVariableSet:l}'", validatedImportSettings.LibraryVariableSet.Name);
             }
@@ -138,7 +136,7 @@ namespace Octopus.Cli.Importers
                             foreach (var usedEnvironment in usedEnvironments)
                             {
                                 var environment = variableScopeValues.Environments.Find(e => e.Id == usedEnvironment);
-                                if (environment != null)
+                                if (environment != null && !usedScopeValues[ScopeField.Environment].Exists(env => env.Id == usedEnvironment))
                                 {
                                     usedScopeValues[ScopeField.Environment].Add(environment);
                                 }
@@ -149,7 +147,7 @@ namespace Octopus.Cli.Importers
                             foreach (var usedMachine in usedMachines)
                             {
                                 var machine = variableScopeValues.Machines.Find(m => m.Id == usedMachine);
-                                if (machine != null)
+                                if (machine != null && !usedScopeValues[ScopeField.Machine].Exists(m => m.Id == usedMachine))
                                 {
                                     usedScopeValues[ScopeField.Machine].Add(machine);
                                 }
@@ -165,8 +163,7 @@ namespace Octopus.Cli.Importers
         async Task ImportVariableSets(VariableSetResource variableSet,
             LibraryVariableSetResource importedLibVariableSet,
             IDictionary<string, EnvironmentResource> environments,
-            IDictionary<string, MachineResource> machines,
-            IDictionary<ScopeField, List<ReferenceDataItem>> scopeValuesUsed)
+            IDictionary<string, MachineResource> machines)
         {
             Log.Debug("Importing the Library Variable Set's Variable Set");
             var existingVariableSet = await Repository.VariableSets.Get(importedLibVariableSet.VariableSetId).ConfigureAwait(false);
@@ -175,37 +172,7 @@ namespace Octopus.Cli.Importers
             existingVariableSet.Variables.Clear();
             existingVariableSet.Variables.AddRange(variables);
 
-            var scopeValues = UpdateScopeValues(environments, machines, scopeValuesUsed);
-            existingVariableSet.ScopeValues.Actions.Clear();
-            existingVariableSet.ScopeValues.Actions.AddRange(scopeValues.Actions);
-            existingVariableSet.ScopeValues.Environments.Clear();
-            existingVariableSet.ScopeValues.Environments.AddRange(scopeValues.Environments);
-            existingVariableSet.ScopeValues.Machines.Clear();
-            existingVariableSet.ScopeValues.Machines.AddRange(scopeValues.Machines);
-            existingVariableSet.ScopeValues.Roles.Clear();
-            existingVariableSet.ScopeValues.Roles.AddRange(scopeValues.Roles);
-
             await Repository.VariableSets.Modify(existingVariableSet).ConfigureAwait(false);
-        }
-
-        private VariableScopeValues UpdateScopeValues(IDictionary<string, EnvironmentResource> environments, IDictionary<string, MachineResource> machines, IDictionary<ScopeField, List<ReferenceDataItem>> scopeValuesUsed)
-        {
-            var scopeValues = new VariableScopeValues();
-            Log.Debug("Updating the Environments of the Variable Set's Scope Values");
-            scopeValues.Environments = new List<ReferenceDataItem>();
-            foreach (var environment in scopeValuesUsed[ScopeField.Environment])
-            {
-                var newEnvironment = environments[environment.Id];
-                scopeValues.Environments.Add(new ReferenceDataItem(newEnvironment.Id, newEnvironment.Name));
-            }
-            Log.Debug("Updating the Machines of the Variable Set's Scope Values");
-            scopeValues.Machines = new List<ReferenceDataItem>();
-            foreach (var machine in scopeValuesUsed[ScopeField.Machine])
-            {
-                var newMachine = machines[machine.Id];
-                scopeValues.Machines.Add(new ReferenceDataItem(newMachine.Id, newMachine.Name));
-            }
-            return scopeValues;
         }
 
         private IList<VariableResource> UpdateVariables(VariableSetResource variableSet, IDictionary<string, EnvironmentResource> environments, IDictionary<string, MachineResource> machines)
