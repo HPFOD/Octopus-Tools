@@ -1,3 +1,8 @@
-mode: ContinuousDeployment
+mode: Mainline
 legacy-semver-padding: 0
 build-metadata-padding: 0
+
+branches:
+    custom-build:
+        regex: fod-extensions
+        is-mainline: true
