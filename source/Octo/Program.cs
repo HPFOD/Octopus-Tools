@@ -33,7 +33,7 @@ namespace Octopus.Cli
 
         internal static int Run(string[] args)
         {
-            Log.Information("Octopus Deploy Command Line Tool, version {Version:l}", typeof(Program).GetInformationalVersion());
+            Log.Information("Octopus Deploy Command Line Tool, version {Version:l} (FOD)", typeof(Program).GetInformationalVersion());
             Console.Title = "Octopus Deploy Command Line Tool";
             Log.Information(string.Empty);
 
